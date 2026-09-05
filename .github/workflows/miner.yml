@@ -23,9 +23,8 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
     
-          - name: Run FishMya Miner
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          GAME_TOKEN: ${{ secrets.GAME_TOKEN }}
-        run: python fishmya_bot.py
-        
+    - name: Run FishMya Miner
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        GAME_TOKEN: ${{ secrets.GAME_TOKEN }}
+      run: python fishmya_bot.py
