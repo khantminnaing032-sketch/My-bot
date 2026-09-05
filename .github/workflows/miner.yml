@@ -4,8 +4,8 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
-  workflow_dispatch:  # Manual button
+    - cron: '*/15 * * * *'  
+  workflow_dispatch:  
 
 jobs:
   run-miner:
@@ -25,6 +25,7 @@ jobs:
     
     - name: Run FishMya Miner
       env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        GAME_TOKEN: ${{ secrets.GAME_TOKEN }}
-      run: python fishmya_bot.py
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        GAME_ACCESS_TOKEN: ${{ secrets.GAME_ACCESS_TOKEN }}
+      run: python fishmya_bot.p
+      y
