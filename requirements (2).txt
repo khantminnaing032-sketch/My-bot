@@ -1,2 +1,6 @@
-pyTelegramBotAPI
-edge-tts
+aiohttp==3.9.1
+websockets>=12.0
+msgpack==1.0.8
+aiohttp==3.9.1
+websocket-client==1.8.0
+msgpack==1.0.8
