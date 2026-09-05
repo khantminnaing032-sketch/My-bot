@@ -27,5 +27,4 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         GAME_ACCESS_TOKEN: ${{ secrets.GAME_ACCESS_TOKEN }}
-      run: python fishmya_bot.p
-      y
+      run: python fishmya_bot.py
