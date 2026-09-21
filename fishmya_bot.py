@@ -36,10 +36,10 @@ CALIBRATION_REQUESTS = 500      # စမ်းသပ်မယ့် request
 MIN_ACCEPTED = 50               # အနည်းဆုံး လက်ခံရမယ့်အရေအတွက်
 INITIAL_RATE = 150              # Default rate
 RECALIBRATE_EVERY = 300         # 5 မိနစ်တစ်ခါ re-calibrate
-SLEEP_BETWEEN_CYCLES = 0.5      # Cycle ကြားစောင့်
+SLEEP_BETWEEN_CYCLES = 0.01      # Cycle ကြားစောင့်
 PING_INTERVAL = 5
 RECV_TIMEOUT = 0.05
-RECV_WINDOW = 0.3
+RECV_WINDOW = 0.01
 
 # ==================== TARGET ROUTE ====================
 TARGET_ROUTE = {"route": "claimItemOnline", "data": {"package": 5}, "desc": "Pkg 5", "coins": 1500}
