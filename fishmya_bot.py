@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-FishMya Game - Auto Scan + Exploit Bot (100 req/cycle)
+FishMya Game - Auto Scan + Exploit Bot (Fast Preset)
 Author: GHOST
-Version: 18.5 - 100 Requests per Cycle
+Version: 18.6 - Fast Rate
 """
 
 import asyncio
@@ -31,10 +31,12 @@ WS_HEADERS = [
     "X-Requested-With: com.mytel.myid"
 ]
 
-# ==================== RATE CONTROL ====================
-REQUESTS_PER_CYCLE = 100     # တစ်ခါ ၁၀၀ ခု ပို့
-SLEEP_BETWEEN_CYCLES = 1.0   # ၁ စက္ကန့် စောင့် (≈100 req/s)
+# ==================== RATE CONTROL (FAST) ====================
+REQUESTS_PER_CYCLE = 5       # တစ်ခါ ၅ ခု ပို့
+SLEEP_BETWEEN_CYCLES = 0.01  # ၁၀ms စောင့်
 PING_INTERVAL = 5            # ၅ စက္ကန့်တစ်ခါ ping
+RECV_TIMEOUT = 0.02          # recv timeout 20ms
+RECV_WINDOW = 0.05           # recv window 50ms
 
 # ==================== LOGGING ====================
 logging.basicConfig(
@@ -465,7 +467,7 @@ def scan_routes():
 
     return len(bot_state['found_routes']) > 0
 
-# ==================== EXPLOIT (100 req/cycle) ====================
+# ==================== EXPLOIT (FAST) ====================
 def exploit_loop():
     global bot_state
     if not bot_state['found_routes']:
@@ -487,10 +489,10 @@ def exploit_loop():
 
     if owner_chat_id:
         exploit_msg = (
-            f"⚡ *Exploit Started!*\n\n"
+            f"⚡ *Exploit Started!* (FAST)\n\n"
             f"🏆 Best Route: {best_route['desc'] if best_route else 'None'} ({bot_state['best_route_coins']} coins)\n"
             f"📦 Using: {len(bot_state['found_routes'])} routes\n"
-            f"⏱️ Rate: {REQUESTS_PER_CYCLE} req / {SLEEP_BETWEEN_CYCLES}s\n\n"
+            f"⏱️ Rate: {REQUESTS_PER_CYCLE} req / {int(SLEEP_BETWEEN_CYCLES*1000)}ms\n\n"
             f"💡 Use *Status* button to check progress."
         )
         asyncio.run(send_telegram(owner_chat_id, exploit_msg, get_main_keyboard()))
@@ -534,7 +536,7 @@ def exploit_loop():
 
         try:
             while bot_state['is_running'] and not connection_broken:
-                # ---- Ping in main loop ----
+                # ---- Ping ----
                 if time.time() - last_ping_time >= PING_INTERVAL:
                     try:
                         ws.send(msgpack.packb({
@@ -546,7 +548,7 @@ def exploit_loop():
                     except:
                         pass
 
-                # ---- Send 100 requests per cycle ----
+                # ---- Send batch ----
                 for _ in range(REQUESTS_PER_CYCLE):
                     if not bot_state['is_running']:
                         break
@@ -570,9 +572,9 @@ def exploit_loop():
                 if connection_broken:
                     break
 
-                # ---- Receive window (longer for 100 req) ----
-                ws.settimeout(0.2)
-                recv_end = time.time() + 0.5
+                # ---- Receive window (FAST) ----
+                ws.settimeout(RECV_TIMEOUT)
+                recv_end = time.time() + RECV_WINDOW
                 while time.time() < recv_end:
                     try:
                         m = ws.recv()
@@ -674,7 +676,7 @@ async def process_command(chat_id: str, text: str):
         best = bot_state.get('best_route')
         best_desc = best.get('desc') if isinstance(best, dict) else 'None'
         status_text = (
-            "🤖 *Auto FishMya Bot*\n\n"
+            "🤖 *Auto FishMya Bot* (FAST)\n\n"
             f"🏆 Best Route: {best_desc}\n"
             f"💰 Balance: {bot_state.get('current_balance', 0):,}\n"
             f"📈 Gained: +{bot_state.get('total_claimed', 0):,}\n"
@@ -738,7 +740,7 @@ async def handle_callback(chat_id: str, data: str):
 # ==================== MAIN ====================
 async def main():
     global last_update_id, owner_chat_id
-    print("Starting auto FishMya bot...")
+    print("Starting auto FishMya bot (FAST)...")
     threading.Thread(target=auto_main_loop, daemon=True).start()
     while True:
         try:
