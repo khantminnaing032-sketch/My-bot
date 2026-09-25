@@ -2,28 +2,41 @@ name: FishMya Auto Bot
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # ၆ နာရီတစ်ခါ run
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: macos-latest
-    timeout-minutes: 350    # job တစ်ခု 5 နာရီ 50 မိနစ် run
+    timeout-minutes: 350
     steps:
-      - name: CONTROL_BOT_HEARTBEAT
-        env:
-          HEARTBEAT_URL: https://8765-iknsuhmsxcq806d1kv03s-3769431e.us1.manus.computer/heartbeat
-          HEARTBEAT_SECRET: ${{ secrets.CONTROL_BOT_HEARTBEAT_SECRET }}
-          WATCH_BOT_ID: "8710217186"
-        run: |
-          nohup sh -c 'while true; do curl -fsS --max-time 15 -X POST "$HEARTBEAT_URL" -H "Authorization: Bearer $HEARTBEAT_SECRET" -H "Content-Type: application/json" -d "{\"bot_id\":\"$WATCH_BOT_ID\",\"repo\":\"$GITHUB_REPOSITORY\",\"run_id\":\"$GITHUB_RUN_ID\"}" >/dev/null || true; sleep 60; done' >/tmp/control-bot-heartbeat.log 2>&1 &
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python fishmya_bot.py
+      - name: Run bot and watch CALIBRATION RESULT
         env:
+          HEARTBEAT_URL: https://8765-iknsuhmsxcq806d1kv03s-3769431e.us1.manus.computer/heartbeat
+          HEARTBEAT_SECRET: ${{ secrets.CONTROL_BOT_HEARTBEAT_SECRET }}
+          WATCH_BOT_ID: "8710217186"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           GAME_ACCESS_TOKEN: ${{ secrets.GAME_ACCESS_TOKEN }}
           PYTHONIOENCODING: 'utf-8'
+        run: |
+          set -o pipefail
+          curl -fsS --max-time 15 -X POST "$HEARTBEAT_URL" \
+            -H "Authorization: Bearer $HEARTBEAT_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "{\"bot_id\":\"$WATCH_BOT_ID\",\"repo\":\"$GITHUB_REPOSITORY\",\"run_id\":\"$GITHUB_RUN_ID\",\"event\":\"started\"}" || true
+          python -u fishmya_bot.py 2>&1 | while IFS= read -r line; do
+            printf '%s\n' "$line"
+            case "$line" in
+              *"CALIBRATION RESULT:"*)
+                curl -fsS --max-time 15 -X POST "$HEARTBEAT_URL" \
+                  -H "Authorization: Bearer $HEARTBEAT_SECRET" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"bot_id\":\"$WATCH_BOT_ID\",\"repo\":\"$GITHUB_REPOSITORY\",\"run_id\":\"$GITHUB_RUN_ID\",\"event\":\"calibration_result\"}" || true
+                ;;
+            esac
+          done
