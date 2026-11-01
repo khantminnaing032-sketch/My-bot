@@ -3,10 +3,9 @@ from telebot import types
 import requests
 import time
 import threading
-import os
 
-# GitHub Secrets မှ Token ကို ခေါ်ယူခြင်း (သို့မဟုတ် တိုက်ရိုက်ထည့်ရန်)
-TOKEN = os.getenv('BOT_TOKEN', '8183997269:AAElovxXFRd40oatzEtSnKpVm8UAheNvAQw')
+# Bot Token ကို တိုက်ရိုက်ထည့်သွင်းထားပါသည်
+TOKEN = '8183997269:AAElovxXFRd40oatzEtSnKpVm8UAheNvAQw'
 bot = telebot.TeleBot(TOKEN)
 
 # API Base URL
@@ -81,4 +80,3 @@ def run_bomber(chat_id, phone_number, count):
 if __name__ == "__main__":
     print("Bot is running...")
     bot.infinity_polling()
-  
