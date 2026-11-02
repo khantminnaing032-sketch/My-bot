@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 import requests
 
 TOKEN = "8183997269:AAElovxXFRd40oatzEtSnKpVm8UAheNvAQw"
-DEFAULT_PHONE = "09660377241"
+DEFAULT_PHONE = "09663976639"
 
 # Mytel OTP API ကိုခေါ်မည့် Function (အောင်မြင်မှု ရှိမရှိ စစ်ဆေးခြင်း)
 def get_otp_from_api(phone_number):
